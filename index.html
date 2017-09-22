@@ -83,101 +83,6 @@
         <div class="row">
             <div class="col-md-6">
 				<div id='calendar'></div>
-                
-                <!-- <div id="eventDialog">
-				<div class="container-fluid">
-					<div class="row">
-						<div class="col-md-4">
-							<div class="panel panel-info">
-								<div class="panel-heading">
-									Services
-								</div>
-								<div class="panel-body">
-									<select name="appointmentType" id="appointmentType" class="form-control"></select>
-								</div>
-								<table class="table" id="appointmentTypeList">
-								</table>
-							</div>
-						</div>
-						<div class="col-md-4">
-							<div class="panel panel-info">
-								<div class="panel-heading">
-									Break time
-								</div>
-								<div class="panel-body">
-									<div class="row">
-										<div class='col-md-4'>
-											<div class="form-group">
-												<input type='text' class="form-control" id="startBreakTime" />
-											</div>
-										</div>
-										<div class='col-md-4'>
-											<div class="form-group">
-												<input type='text' class="form-control" id="endBreakTime" />
-											</div>
-										</div>
-										<div class='col-md-4'>
-											<div class="form-group">
-												<span class="glyphicon glyphicon-plus" id="addBreak" aria-hidden="true"></span>
-											</div>
-										</div>
-									</div>
-								</div>
-								<table class="table" id="breakTimeList">
-								</table>
-							</div>
-						</div>
-						<div class="col-md-4">
-							<div class="row">
-								<p>Время приема</p>
-								<div class='col-md-6'>
-									<div class="form-group">
-										   <input type='text' class="form-control" id="startDate" />
-										   <input type='text' class="form-control" id="endDate" />
-									</div>
-								</div>
-								<div class='col-md-6'>
-									<div class="form-group">
-										   <input type='text' class="form-control" id="startTime" />
-										   <input type='text' class="form-control" id="endTime" />
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-					<hr>
-					<div class="row">
-						<div class="col-md-4">
-							<label for="serviceDuration">Service duration</label>
-							<div class="form-group">
-								<input type='text' name="serviceDuration" class="form-control" id="serviceDuration" />
-							</div>
-						</div>
-						<div class="col-md-4">
-							<label for="nursesQuantity">Nurses quantity</label>
-							<div class="form-group">
-								<input type='text' name="nursesQuantity" class="form-control" id="nursesQuantity" />
-							</div>
-						</div>
-					</div>
-					<div class="row">
-						<div class="col-md-4">
-							<div class="panel panel-info">
-								<div class="panel-heading">
-									Additional Providers
-								</div>
-								<div class="panel-body">
-									<select name="additionalProviderLocation" id="additionalProviderLocation" class="form-control"></select>
-									<select name="additionalProvider" id="additionalProvider" class="form-control"></select>
-								</div>
-								<table class="table" id="additionalProviderList">
-								</table>
-							</div>
-						</div>
-					</div>
-				</div>
-				
-				</div> -->
             </div>
 			<div class="col-md-6">
 				<div id="appointmentContainer">
@@ -285,11 +190,12 @@
 						</div>
 					</div>
 					<div class="row">
-						<div class="col-md-4">
-							<div class="form-group">
-								<div id="paymentTypeList">
-								</div>
+						<label for="paymentTypes">Payment types</label>
+						<div id="paymentTypes">
+						<div class="col-md-12">
+							<div id="paymentTypeList">
 							</div>
+						</div>
 						</div>
 					</div>
 					<hr>

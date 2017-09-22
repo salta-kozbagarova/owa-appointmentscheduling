@@ -25,6 +25,8 @@ $(document).ready(function() {
 	*/
 	var AppointmentBlock = function(obj){
 		
+		var serviceDuration;
+		
 		this.construct = function(obj){
 			this.uuid = obj.uuid;
 			this.types = obj.types;
@@ -36,7 +38,24 @@ $(document).ready(function() {
 			this.serviceDuration = obj.serviceDuration;
 			this.nursesQuantity = obj.nursesQuantity;
 			this.additionalProviders = obj.additionalProviders;
+			this.paymentTypes = obj.paymentTypes;
 		}
+		
+		Object.defineProperty(this, "serviceDuration", {
+			get: function() {
+				if(!serviceDuration){
+					serviceDuration = 5;
+				}
+				return serviceDuration;
+			},
+			set: function(newValue) {
+				serviceDuration = newValue;
+			},
+
+			enumerable: true,
+			configurable: true
+		});
+
 		
 		this.getTitleFromTypes = function(appointmentTypes){
 			var types = $.map(appointmentTypes,function(v,k){
@@ -192,7 +211,7 @@ $(document).ready(function() {
 		success: function(response){
 			var data = response.results;
 			$.each(data,function(i,v){
-				$('#paymentTypeList').append('<label class="checkbox-inline"><input type="checkbox" class="paymentType" value="' + v.uuid + '">' + v.display + '</label>');
+				$('#paymentTypeList').append('<label class="checkbox-inline"><input type="checkbox" class="listItem" value="' + v.uuid + '">' + v.display + '</label>');
 			});
 		}
 	});
@@ -437,6 +456,11 @@ $(document).ready(function() {
 			additionalProviders.push($(this).data('uuid'));
 		});
 		
+		var paymentTypes = [];
+		$('#paymentTypeList').find('.listItem:checked').each(function(index){
+			paymentTypes.push($(this).val());
+		});
+		
 		var appointmentBlock;
         for(i=0; i<= diffDays; i++){
 			$.each(startTime, function(index,value){
@@ -452,7 +476,8 @@ $(document).ready(function() {
 					},
 					'serviceDuration': serviceDuration.toString(),
 					'nursesQuantity': nursesQuantity.toString(),
-					'additionalProviders':additionalProviders
+					'additionalProviders':additionalProviders,
+					'paymentTypes': paymentTypes
 				};
 				$.ajax({
 					url: appointmentBlockUrl,
@@ -538,6 +563,11 @@ $(document).ready(function() {
 			additionalProviders.push($(this).data('uuid'));
 		});
 		
+		var paymentTypes = [];
+		$('#paymentTypeList').find('.listItem:checked').each(function(index){
+			paymentTypes.push($(this).val());
+		});
+		
 		$.ajax({
 			url: appointmentBlockUrl+'/'+uuid,
 			method: 'DELETE',
@@ -562,7 +592,8 @@ $(document).ready(function() {
 							},
 							'serviceDuration': serviceDuration.toString(),
 							'nursesQuantity': nursesQuantity.toString(),
-							'additionalProviders':additionalProviders
+							'additionalProviders':additionalProviders,
+							'paymentTypes': paymentTypes
 						};
 						$.ajax({
 							url: appointmentBlockUrl,
@@ -653,6 +684,31 @@ $(document).ready(function() {
 			$('#startTime').val(calEvent.start.format('HH:mm:ss'));
 			$('#endDate').val(calEvent.end.format('YYYY-MM-DD'));
 			$('#endTime').val(calEvent.end.format('HH:mm:ss'));
+			$('#serviceDuration').val(calEvent.serviceDuration);
+			$('#nursesQuantity').val(calEvent.nursesQuantity);
+			
+			var additionalProviderList = $('#additionalProviderList');
+			additionalProviderList.html('');
+			additionalProviderCashe = [];
+			$.each(calEvent.additionalProviders, function(index,value){
+				additionalProviderCashe.push(value.uuid);
+				additionalProviderList.append('<tr><td><span class="listItem" data-uuid="' + value.uuid + '">' + value.display.split("-")[1] + '</span></td>'
+					+'<td><span class="glyphicon glyphicon-minus pull-right removeAdditionalProvider" aria-hidden="true"></span></td>'
+					+'</tr>');
+			});
+			
+			var paymentTypes = [];
+			$.each(calEvent.paymentTypes, function(index,value){
+				paymentTypes.push(value.uuid);
+			});
+			$('#paymentTypeList').find('.listItem').each(function(index){
+				if($.inArray($(this).val(),paymentTypes) >= 0){
+					$(this).attr('checked',true);
+				}else{
+					$(this).attr('checked',false);
+				}
+			});
+			
 			$('#apply').addClass('hidden');
 			$('#update').removeClass('hidden');
 			$('#appointmentContainer').data('uuid',calEvent.uuid);
@@ -707,9 +763,10 @@ $(document).ready(function() {
 			'provider': {
 				'uuid': appointmentBlock.provider.uuid
 			},
-			'serviceDuration': appointmentBlock.serviceDuration.toString(),
-			'nursesQuantity': appointmentBlock.nursesQuantity.toString(),
-			'additionalProviders':appointmentBlock.additionalProviders
+			'serviceDuration': appointmentBlock.serviceDuration,
+			'nursesQuantity': appointmentBlock.nursesQuantity,
+			'additionalProviders':appointmentBlock.additionalProviders,
+			'paymentTypes': appointmentBlock.paymentTypes
 		}
 		$.ajax({
 			url: appointmentBlockUrl+'/'+appointmentBlock.uuid,
