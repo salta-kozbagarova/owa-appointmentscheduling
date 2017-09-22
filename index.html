@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+   
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+  
+   
+   
+   
+    <link rel='stylesheet' href='fullcalendar/fullcalendar.css' />
+<!--<script src='fullcalendar/lib/jquery.min.js'></script>-->
+<script src='fullcalendar/lib/moment.min.js'></script>
+<script src='fullcalendar/fullcalendar.js'></script>
+<script src='fullcalendar/locale/ru.js'></script>
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" />
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+   
+   <link rel="stylesheet" href="jquery-timepicker/jquery.timepicker.min.css" />
+   <script src="jquery-timepicker/jquery.timepicker.min.js"></script>
+   
+   <link rel="stylesheet" href="bootstrap-treeview-master/dist/bootstrap-treeview.min.css" />
+   <script src="bootstrap-treeview-master/dist/bootstrap-treeview.min.js"></script>
+   <!--<script src="datepair/dist/datepair.min.js"></script>
+   <script src="datepair/dist/jquery.datepair.min.js"></script>-->
+   
+   
+<script src="clndr.js"></script>
+
+<style>
+	.addBreak, .removeBreak{
+		cursor: pointer;
+	}
+	
+	.ui-widget-header {
+		border: 1px solid #bce8f1;
+		background: #d9edf7;
+		color: #31708f;
+		font-weight: bold;
+	}
+	
+	#appointmentContainer{
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		padding: 5px;
+	}
+	.selectable{
+		cursor: pointer;
+	}
+	#additionalProvider{
+		min-width: 250px;
+	}
+</style>
+</head>
+<body>
+    <div class="container-fluid">
+		<div class="row">
+			<div class='col-md-6'>
+				<div class="form-group">
+					   <select name="location" id="location" class="form-control">
+					   </select>
+				</div>
+			</div>
+			<div class='col-md-6'>
+				<div class="form-group">
+					   <select name="provider" id="provider" class="form-control">
+					   </select>
+				</div>
+			</div>
+		</div>
+        <div class="row">
+            <div class="col-md-6">
+				<div id='calendar'></div>
+                
+                <!-- <div id="eventDialog">
+				<div class="container-fluid">
+					<div class="row">
+						<div class="col-md-4">
+							<div class="panel panel-info">
+								<div class="panel-heading">
+									Services
+								</div>
+								<div class="panel-body">
+									<select name="appointmentType" id="appointmentType" class="form-control"></select>
+								</div>
+								<table class="table" id="appointmentTypeList">
+								</table>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="panel panel-info">
+								<div class="panel-heading">
+									Break time
+								</div>
+								<div class="panel-body">
+									<div class="row">
+										<div class='col-md-4'>
+											<div class="form-group">
+												<input type='text' class="form-control" id="startBreakTime" />
+											</div>
+										</div>
+										<div class='col-md-4'>
+											<div class="form-group">
+												<input type='text' class="form-control" id="endBreakTime" />
+											</div>
+										</div>
+										<div class='col-md-4'>
+											<div class="form-group">
+												<span class="glyphicon glyphicon-plus" id="addBreak" aria-hidden="true"></span>
+											</div>
+										</div>
+									</div>
+								</div>
+								<table class="table" id="breakTimeList">
+								</table>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="row">
+								<p>Время приема</p>
+								<div class='col-md-6'>
+									<div class="form-group">
+										   <input type='text' class="form-control" id="startDate" />
+										   <input type='text' class="form-control" id="endDate" />
+									</div>
+								</div>
+								<div class='col-md-6'>
+									<div class="form-group">
+										   <input type='text' class="form-control" id="startTime" />
+										   <input type='text' class="form-control" id="endTime" />
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<hr>
+					<div class="row">
+						<div class="col-md-4">
+							<label for="serviceDuration">Service duration</label>
+							<div class="form-group">
+								<input type='text' name="serviceDuration" class="form-control" id="serviceDuration" />
+							</div>
+						</div>
+						<div class="col-md-4">
+							<label for="nursesQuantity">Nurses quantity</label>
+							<div class="form-group">
+								<input type='text' name="nursesQuantity" class="form-control" id="nursesQuantity" />
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-4">
+							<div class="panel panel-info">
+								<div class="panel-heading">
+									Additional Providers
+								</div>
+								<div class="panel-body">
+									<select name="additionalProviderLocation" id="additionalProviderLocation" class="form-control"></select>
+									<select name="additionalProvider" id="additionalProvider" class="form-control"></select>
+								</div>
+								<table class="table" id="additionalProviderList">
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				</div> -->
+            </div>
+			<div class="col-md-6">
+				<div id="appointmentContainer">
+				<div class="container-fluid">
+					<div class="row">
+						<div class="col-md-4">
+							<div class="panel panel-info">
+								<div class="panel-heading">
+									Services
+								</div>
+								<div class="panel-body">
+									<select name="appointmentType" id="appointmentType" class="form-control"></select>
+								</div>
+								<table class="table" id="appointmentTypeList">
+								</table>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="panel panel-info">
+								<div class="panel-heading">
+									Break time
+								</div>
+								<div class="panel-body">
+									<div class="row">
+										<div class='col-md-4'>
+											<div class="form-group">
+												<input type='text' class="form-control" id="startBreakTime" />
+											</div>
+										</div>
+										<div class='col-md-4'>
+											<div class="form-group">
+												<input type='text' class="form-control" id="endBreakTime" />
+											</div>
+										</div>
+										<div class='col-md-4'>
+											<div class="form-group">
+												<span class="glyphicon glyphicon-plus" id="addBreak" aria-hidden="true"></span>
+											</div>
+										</div>
+									</div>
+								</div>
+								<table class="table" id="breakTimeList">
+								</table>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<div class="row">
+								<label for="appointmentTime">Appointment time</label>
+								<div id="appointmentTime">
+								<div class='col-md-6'>
+									<div class="form-group">
+									   <input type='text' class="form-control" id="startDate" />
+									   <input type='text' class="form-control" id="endDate" />
+									</div>
+								</div>
+								<div class='col-md-6'>
+									<div class="form-group">
+									   <input type='text' class="form-control" id="startTime" />
+									   <input type='text' class="form-control" id="endTime" />
+									</div>
+								</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<hr>
+					<div class="row">
+						<div class="col-md-4">
+							<label for="serviceDuration">Service duration</label>
+							<div class="form-group">
+								<input type='text' name="serviceDuration" class="form-control" id="serviceDuration" />
+							</div>
+						</div>
+						<div class="col-md-4">
+							<label for="nursesQuantity">Nurses quantity</label>
+							<div class="form-group">
+								<input type='text' name="nursesQuantity" class="form-control" id="nursesQuantity" />
+							</div>
+						</div>
+					</div>
+					<div id="providersDialog">
+					<div class="container-fluid">
+						<div class="row">
+							<table class="table table-bordered">
+								<tr>
+									<td><div id="locationTree"></div></td>
+									<td id="additionalProvider"></td>
+								</tr>
+							</table>
+						</div>
+					</div>
+					</div>
+					<div class="row">
+						<div class="col-md-4">
+							<div class="panel panel-info">
+								<div class="panel-heading">
+									Additional Providers
+								</div>
+								<div class="panel-body">
+									<a href="#" id="selectProviders">Add providers</a>
+								</div>
+								<table class="table" id="additionalProviderList">
+								</table>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-4">
+							<div class="form-group">
+								<div id="paymentTypeList">
+								</div>
+							</div>
+						</div>
+					</div>
+					<hr>
+					<div class="row">
+						<div class="btn-group pull-right" role="group">
+							<button type="button" class="btn btn-info" id="apply">
+								<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+							</button>
+							<button type="button" class="btn btn-warning" id="update">
+								<span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+							</button>
+							<button type="button" class="btn btn-danger" id="delete">
+								<span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+							</button>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+        </div>
+    </div>
+</body>
+</html>

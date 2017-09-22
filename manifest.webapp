@@ -1,0 +1,22 @@
+{
+    "version": "0.1",
+    "name": "Appointment Scheduling",
+    "description": "Provider Appointment Scheduling",
+    "launch_path": "/index.html",
+    "developer": {
+        "name": "Saltanat Alikhanova",
+        "url": ""
+    },
+    "activities": {
+      "openmrs": {
+        "href": "*"
+      }
+    },
+    "folderName": "test",
+    "baseUrl": null,
+    "launchUrl": null,
+    "launch_path": "index.html",
+    "installs_allowed_from": null,
+    "default_locale": "en",
+    "deployed.owa.name": null
+}
