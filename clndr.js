@@ -6,10 +6,10 @@ $(document).ready(function() {
 	*/
     var apiBaseUrl = 'http://localhost:8085/openmrs-dev/ws/rest/v1';
 	var credentials = 'Basic ' + btoa('admin', 'Admin123');
-    /* $.getJSON("manifest.webapp", function( json ) {
+    $.getJSON("manifest.webapp", function( json ) {
         apiBaseUrl = json.activities.openmrs.href + "/ws/rest/v1";
 		console.log(apiBaseUrl+'/appointmentscheduling/appointmentblockwithtimeslot');
-    }); */
+    });
 	var appointmentBlockUrl = apiBaseUrl + "/appointmentscheduling/appointmentblockwithtimeslot";
 	var appointmentTypesUrl = apiBaseUrl + "/appointmentscheduling/appointmenttype";
 	var paymentTypesUrl = apiBaseUrl + "/appointmentscheduling/paymenttype";
