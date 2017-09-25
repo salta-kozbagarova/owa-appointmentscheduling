@@ -18,6 +18,10 @@ $(document).ready(function() {
 	
 	var additionalProviderCashe = [];
 	
+	var highlightSkeleton = '<div class="fc-highlight-skeleton"><table><tbody><tr>';
+	var isWorkDays = false;
+	var isWeekend = false;
+	
 	/*
 	***********************************************************************
 	**************Appointment Block objects and sources********************
@@ -30,7 +34,7 @@ $(document).ready(function() {
 		this.construct = function(obj){
 			this.uuid = obj.uuid;
 			this.types = obj.types;
-			this.title = this.getTitleFromTypes(obj.types);
+			this.title = this.getTitleFromTime(obj.startDate, obj.endDate);
 			this.start = obj.startDate;
 			this.end = obj.endDate;
 			this.location = obj.location;
@@ -62,6 +66,12 @@ $(document).ready(function() {
 				return v.display;
 			});
 			return types.join(',');
+		}
+		
+		this.getTitleFromTime = function(start, end){
+			var st = new Date(start);
+			var en = new Date(end);
+			return st.toLocaleTimeString('ru-RU',{ hour12: false }) + '-' + en.toLocaleTimeString('ru-RU',{ hour12: false });
 		}
 		
 		this.construct(obj);
@@ -375,11 +385,11 @@ $(document).ready(function() {
 	* Initializing datepickers and timepickers
 	*/
     $('#startDate').datepicker({dateFormat: "yy-mm-dd"});
-    $('#startTime').timepicker({ 'step': 15,'timeFormat': 'H:i:s' });
-    $('#endTime').timepicker({ 'step': 15,'timeFormat': 'H:i:s' });
+    $('#startTime').timepicker({ 'step': 5,'timeFormat': 'H:i:s', 'minTime': '8:00:00', 'maxTime': '20:00:00' });
+    $('#endTime').timepicker({ 'step': 5,'timeFormat': 'H:i:s', 'minTime': '8:00:00', 'maxTime': '20:00:00' });
     $('#endDate').datepicker({dateFormat: "yy-mm-dd"});
-    $('#startBreakTime').timepicker({ 'step': 15,'timeFormat': 'H:i:s' });
-    $('#endBreakTime').timepicker({ 'step': 15,'timeFormat': 'H:i:s' });
+    $('#startBreakTime').timepicker({ 'step': 5,'timeFormat': 'H:i:s', 'minTime': '8:00:00', 'maxTime': '20:00:00' });
+    $('#endBreakTime').timepicker({ 'step': 5,'timeFormat': 'H:i:s', 'minTime': '8:00:00', 'maxTime': '20:00:00' });
 	/*
 	**********************************************************************
 	*/
@@ -417,6 +427,36 @@ $(document).ready(function() {
 		$('#appointmentTypeList').find('span.listItem').each(function(index){
 			appointmentTypes.push($(this).data('uuid'));
 		});
+		
+		var days = [];
+		var startMoment = moment(startDate.getFullYear() + '-' + (startDate.getMonth()+1) + '-' + startDate.getDate());
+		var endMoment = moment(endDate.getFullYear() + '-' + (endDate.getMonth()+1) + '-' + endDate.getDate()).add(1,'day');
+		var dayCounter = 0;
+		if(!(startMoment.format() == endMoment.add(-1,'day').format()) && startMoment.isoWeekday() == 7){
+			if(isWorkDays){
+				while(startMoment.format() != endMoment.format()){
+					if(startMoment.isoWeekday() == 6 || startMoment.isoWeekday() == 7){
+						dayCounter++;
+					}else{
+						days.push(dayCounter);
+						dayCounter = 0;
+					}
+					startMoment.add(1,'day');
+				}
+			} else{
+				while(startMoment.format() != endMoment.format()){
+					if(startMoment.isoWeekday() != 6){
+						dayCounter++;
+					}else{
+						days.push(dayCounter);
+						dayCounter = 0;
+					}
+					startMoment.add(1,'day');
+				}
+			}
+		} else{
+			flashMessage('warning','Sunday is not a work day');
+		}
 		
 		var breakTimes = [];
 		$('#breakTimeList').find('span.listItem').each(function(index){
@@ -462,8 +502,10 @@ $(document).ready(function() {
 		});
 		
 		var appointmentBlock;
-        for(i=0; i<= diffDays; i++){
+		$.each(days,function(i,v){
 			$.each(startTime, function(index,value){
+				startTime[index].add(v,'day');
+				endTime[index].add(v,'day');
 				appointmentBlock = {
 					'types':appointmentTypes,
 					'startDate': startTime[index].clone().format(),
@@ -489,15 +531,16 @@ $(document).ready(function() {
 					},
 					success: function(response){
 						console.log('apply request '+i+' '+index);
+						flashMessage('success','Appoinment schedule was successfully created');
 					}
-				}).fail(function() {
+				}).fail(function(e) {
 					console.log('apply error '+i+' '+index);
+					flashMessage('error',e);
 				});
 				startTime[index].add(1,'day');
 				endTime[index].add(1,'day');
 			});
-        }
-        flashMessage('success','Appoinment schedule was successfully created');
+		});
 		console.log('apply refetching');
         $('#calendar').fullCalendar('refetchEvents');
         $('#calendar').fullCalendar('unselect');
@@ -605,9 +648,11 @@ $(document).ready(function() {
 							},
 							success: function(response){
 								console.log('update request '+i+' '+index);
+								flashMessage('success','Appoinment schedule was successfully updated');
 							}
-						}).fail(function() {
+						}).fail(function(e) {
 							console.log('update error '+i+' '+index);
+							flashMessage('error',e);
 						});
 						startTime[index].add(1,'day');
 						endTime[index].add(1,'day');
@@ -617,7 +662,6 @@ $(document).ready(function() {
 		}).fail(function(e) {
 			flashMessage('error',e);
 		});
-        flashMessage('success','Appoinment schedule was successfully updated');
 		console.log('update refetching');
         $('#calendar').fullCalendar('refetchEvents');
         $('#calendar').fullCalendar('unselect');
@@ -653,13 +697,20 @@ $(document).ready(function() {
     $('#calendar').fullCalendar({
         defaultView: 'agenda',
 		locale: 'ru',
-        allDaySlot:true,
+        allDaySlot:false,
+		minTime: "08:00:00",
+		maxTime: "20:00:00",
         slotDuration: '00:10:00',
         header: {
             left: 'prev,next today myCustomButton',
             center: 'title',
             right: 'month,agendaWeek,agendaDay,listWeek'
         },
+		businessHours: {
+			dow: [ 1, 2, 3, 4, 5, 6 ],
+			start: '8:00',
+			end: '20:00',
+		},
         themeSystem:'bootstrap3',
         navLinks:true,
 		defaultTimedEventDuration: '02:00:00',
@@ -671,6 +722,8 @@ $(document).ready(function() {
 		eventSources: [
 			appointmentBlockSource
 		],
+		eventConstraint: "businessHours",
+		//selectConstraint: "businessHours",
 		eventClick: function(calEvent, jsEvent, view) {
 			var appointmentTypeList = $('#appointmentTypeList');
 			appointmentTypeList.html('');
@@ -715,7 +768,15 @@ $(document).ready(function() {
 		},
         selectable: true,
         selectHelper: true,
-        select: function(start, end, jsEvent, view) {
+		unselectAuto: false,
+        select: function(start, end, jsEvent, view, resorce) {
+			if($('#workDays').is(':checked')){
+				selectWorkDays();
+			} else if($('#weekend').is(':checked')){
+				selectWeekend();
+			} else{
+				unselectWeekend();
+			}
 			if(view.name == 'month'){
 				$('#startDate').val(start.format());
 				$('#endDate').val(end.add(-1,'day').format());
@@ -747,6 +808,114 @@ $(document).ready(function() {
 			updateAppointmentBlock(event);
 		}
     });
+	
+	$('#workDays').change(function(e){
+		if($(this).is(':checked')){
+			isWorkDays = true;
+			selectWorkDays();
+		}
+	});
+	
+	$('#weekend').change(function(e){
+		if($(this).is(':checked')){
+			isWorkDays = false;
+			selectWeekend();
+		}
+	});
+	
+	unselectWeekend = function(){
+		$('.fc-highlight').each(function(i){
+			var colspan = $(this).attr('colspan');
+			var prev = $(this).prev();
+			var next = $(this).next();
+			var dowCount = 7;
+			var availableDowCount = 6;
+			var leftDays = availableDowCount;
+			if($(prev).length > 0){
+				leftDays = availableDowCount - $(prev).attr('colspan');
+			}
+			if(leftDays <= 0){
+				$(this).closest('.fc-highlight-skeleton').remove();
+			} else{
+				if(colspan > leftDays){
+					$(this).attr('colspan',leftDays);
+					if($(next).length > 0){
+						$(next).attr('colspan',dowCount - availableDowCount);
+					} else{
+						var td = document.createElement('td');
+						$(td).attr('colspan',dowCount - availableDowCount);
+						$(this).after(td);
+					}
+				}
+			}
+		});
+	}
+	
+	selectWorkDays = function(){
+		$('.fc-highlight').each(function(i){
+			var colspan = $(this).attr('colspan');
+			var prev = $(this).prev();
+			var next = $(this).next();
+			var dowCount = 7;
+			var availableDowCount = 5;
+			var leftDays = availableDowCount;
+			if($(prev).length > 0){
+				leftDays = availableDowCount - $(prev).attr('colspan');
+			}
+			if(leftDays <= 0){
+				$(this).closest('.fc-highlight-skeleton').remove();
+			} else{
+				if(colspan > leftDays){
+					$(this).attr('colspan',leftDays);
+					if($(next).length > 0){
+						$(next).attr('colspan',dowCount - availableDowCount);
+					} else{
+						var td = document.createElement('td');
+						$(td).attr('colspan',dowCount - availableDowCount);
+						$(this).after(td);
+					}
+				}
+			}
+		});
+	}
+	
+	selectWeekend = function(){
+		$('.fc-highlight').each(function(i){
+			var colspan = $(this).attr('colspan');
+			var prev = $(this).prev();
+			var next = $(this).next();
+			var dowCount = 7;
+			var availableWeekendCount = 1;
+			var availableDowCount = 5;
+			var leftDays = availableDowCount;
+			if($(prev).length > 0){
+				leftDays = availableDowCount - $(prev).attr('colspan');
+			}
+			if(leftDays < 0){
+				$(this).closest('.fc-highlight-skeleton').remove();
+			} else if(colspan > leftDays){
+				$(this).attr('colspan',availableWeekendCount);
+				
+				if($(prev).length > 0){
+					$(prev).attr('colspan', 5);
+				} else{
+					var td = document.createElement('td');
+					$(td).attr('colspan',5);
+					$(this).before(td);
+				}
+				
+				if($(next).length > 0){
+					$(next).attr('colspan',1);
+				} else{
+					var td = document.createElement('td');
+					$(td).attr('colspan',1);
+					$(this).after(td);
+				}
+			} else{
+				$(this).closest('.fc-highlight-skeleton').remove();
+			}
+		});
+	}
 	
 	/*
 	* Updates an existing appointment schedule
