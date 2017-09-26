@@ -6,10 +6,10 @@ $(document).ready(function() {
 	*/
     var apiBaseUrl = 'http://localhost:8085/openmrs-dev/ws/rest/v1';
 	var credentials = 'Basic ' + btoa('admin', 'Admin123');
-    /*$.getJSON("manifest.webapp", function( json ) {
+    $.getJSON("manifest.webapp", function( json ) {
         apiBaseUrl = json.activities.openmrs.href + "/ws/rest/v1";
 		console.log(apiBaseUrl+'/appointmentscheduling/appointmentblockwithtimeslot');
-    });*/
+    });
 	var appointmentBlockUrl = apiBaseUrl + "/appointmentscheduling/appointmentblockwithtimeslot";
 	var appointmentTypesUrl = apiBaseUrl + "/appointmentscheduling/appointmenttype";
 	var paymentTypesUrl = apiBaseUrl + "/appointmentscheduling/paymenttype";
@@ -18,9 +18,17 @@ $(document).ready(function() {
 	
 	var additionalProviderCashe = [];
 	
-	var highlightSkeleton = '<div class="fc-highlight-skeleton"><table><tbody><tr>';
 	var isWorkDays = false;
 	var isWeekend = false;
+	var highlightContainer;
+	
+	fillHighlightContainer = function(){
+		highlightContainer = $('.fc-day-grid.fc-unselectable').html();
+	}
+	
+	renderHighlightConatiner = function(){
+		$('.fc-day-grid.fc-unselectable').html(highlightContainer);
+	}
 	
 	/*
 	***********************************************************************
@@ -461,9 +469,19 @@ $(document).ready(function() {
 					}
 					startMoment.add(1,'day');
 				}
-			} else{
+			} else if(!isWorkDays && isWeekend){
 				while(startMoment.format() != endMoment.format()){
 					if(startMoment.isoWeekday() != 6){
+						dayCounter++;
+					}else{
+						days.push(dayCounter);
+						dayCounter = 0;
+					}
+					startMoment.add(1,'day');
+				}
+			} else{
+				while(startMoment.format() != endMoment.format()){
+					if(startMoment.isoWeekday() == 7){
 						dayCounter++;
 					}else{
 						days.push(dayCounter);
@@ -788,6 +806,7 @@ $(document).ready(function() {
         selectHelper: true,
 		unselectAuto: false,
         select: function(start, end, jsEvent, view, resorce) {
+			fillHighlightContainer();
 			if($('#workDays').is(':checked')){
 				selectWorkDays();
 			} else if($('#weekend').is(':checked')){
@@ -827,16 +846,22 @@ $(document).ready(function() {
 		}
     });
 	
+	changeWorkDays = function(val){
+		isWorkDays = val;
+		isWeekend = !val;
+		console.log(isWorkDays + ' ' + isWeekend);
+	}
+	
 	$('#workDays').change(function(e){
 		if($(this).is(':checked')){
-			isWorkDays = true;
+			changeWorkDays(true);
 			selectWorkDays();
 		}
 	});
 	
 	$('#weekend').change(function(e){
 		if($(this).is(':checked')){
-			isWorkDays = false;
+			changeWorkDays(false);
 			selectWeekend();
 		}
 	});
@@ -870,6 +895,7 @@ $(document).ready(function() {
 	}
 	
 	selectWorkDays = function(){
+		renderHighlightConatiner();
 		$('.fc-highlight').each(function(i){
 			var colspan = $(this).attr('colspan');
 			var prev = $(this).prev();
@@ -898,6 +924,7 @@ $(document).ready(function() {
 	}
 	
 	selectWeekend = function(){
+		renderHighlightConatiner();
 		$('.fc-highlight').each(function(i){
 			var colspan = $(this).attr('colspan');
 			var prev = $(this).prev();
