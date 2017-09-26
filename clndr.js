@@ -6,10 +6,10 @@ $(document).ready(function() {
 	*/
     var apiBaseUrl = 'http://localhost:8085/openmrs-dev/ws/rest/v1';
 	var credentials = 'Basic ' + btoa('admin', 'Admin123');
-    $.getJSON("manifest.webapp", function( json ) {
+    /*$.getJSON("manifest.webapp", function( json ) {
         apiBaseUrl = json.activities.openmrs.href + "/ws/rest/v1";
 		console.log(apiBaseUrl+'/appointmentscheduling/appointmentblockwithtimeslot');
-    });
+    });*/
 	var appointmentBlockUrl = apiBaseUrl + "/appointmentscheduling/appointmentblockwithtimeslot";
 	var appointmentTypesUrl = apiBaseUrl + "/appointmentscheduling/appointmenttype";
 	var paymentTypesUrl = apiBaseUrl + "/appointmentscheduling/paymenttype";
@@ -90,6 +90,8 @@ $(document).ready(function() {
 	appointmentBlockSource.events = function(start, end, timezone, callback) {
 		var locationUuid = $('#location').find('option:selected').val();
 		var providerUuid = $('#provider').find('option:selected').val();
+		var fromDate = start.format().split('T')[0];
+		var toDate = end.format().split('T')[0];
 		if(!locationUuid || !providerUuid){
 			callback([]);
 		}else{
@@ -100,7 +102,7 @@ $(document).ready(function() {
 				url = appointmentBlockUrl+'?v=default&location='+locationUuid+'&provider='+providerUuid;
 			}
 			$.ajax({
-				url: url,
+				url: url + '&fromDate=' + fromDate + '&toDate=' + toDate,
 				method: 'GET',
 				headers: {
 					"authorization": credentials,
@@ -284,6 +286,8 @@ $(document).ready(function() {
 		autoOpen: false,
 		title: 'Provider schedule',
 		width: 'auto',
+		height: 400,
+		overflow: 'auto',
 		show: {
 			effect: "blind",
 			duration: 1000
@@ -305,7 +309,7 @@ $(document).ready(function() {
 				newObj.uuid = v.uuid;
 				newObj.text = v.display;
 				newObj.parentLocation = v.parentLocation;
-				if(v.childLocations != null){
+				if(v.childLocations != null && v.childLocations.length != 0){
 					newObj.nodes = filter(v.childLocations);
 				}
 				newArr.push(newObj);
@@ -320,45 +324,59 @@ $(document).ready(function() {
 		});
 		return treeArr;
 	}
-	$.ajax({
-		url: locationsUrl+'?v=full',
-		method: 'GET',
-		headers: {
-			"authorization": credentials,
-			"content-type": "application/json"
-		},
-		success: function(response){
-			var data = response.results;
-			var tree = makeTree(data);
-			$('#locationTree').treeview({
-				data: tree,
-				expandIcon: 'glyphicon glyphicon-plus',
-				collapseIcon: 'glyphicon glyphicon-minus',
-				emptyIcon: 'glyphicon',
-				nodeIcon: '',
-				checkedIcon: 'glyphicon glyphicon-check',
-				uncheckedIcon: 'glyphicon glyphicon-unchecked'
-			});
-			$('#locationTree').treeview('expandAll', { silent: true });
-			$('#locationTree').on('nodeSelected', function(event, data) {
-				$.ajax({
-					url: providersUrl,
-					method: 'GET',
-					headers: {
-						"authorization": credentials,
-						"content-type": "application/json"
-					},
-					success: function(response){
-						var data = response.results;
-						$('#additionalProvider').html('');
-						$.each(data,function(key,value){
-							$('#additionalProvider').append('<p class="selectable" data-uuid="' + value.uuid + '">' + value.display.split("-")[1] + '</p>');
-						});
-						
-					}
+	var locationsData = [];
+	var url = locationsUrl+'?v=full'+'&startIndex=0';
+	while(url){
+		$.ajax({
+			url: url,
+			method: 'GET',
+			headers: {
+				"authorization": credentials,
+				"content-type": "application/json"
+			},
+			success: function(response){
+				url = null;
+				if(response.links != null){
+					var links = response.links;
+					$.each(links,function(i,v){
+						if(v.rel == "next"){
+							url = v.uri;
+						}
+					});
+				}
+				var data = response.results;
+				$.merge(locationsData, data);
+			}
+		});
+	}
+	var tree = makeTree(locationsData);
+	$('#locationTree').treeview({
+		data: tree,
+		expandIcon: 'glyphicon glyphicon-plus',
+		collapseIcon: 'glyphicon glyphicon-minus',
+		emptyIcon: 'glyphicon',
+		nodeIcon: '',
+		checkedIcon: 'glyphicon glyphicon-check',
+		uncheckedIcon: 'glyphicon glyphicon-unchecked'
+	});
+	$('#locationTree').treeview('expandAll', { silent: true });
+	$('#locationTree').on('nodeSelected', function(event, data) {
+		$.ajax({
+			url: providersUrl,
+			method: 'GET',
+			headers: {
+				"authorization": credentials,
+				"content-type": "application/json"
+			},
+			success: function(response){
+				var data = response.results;
+				$('#additionalProvider').html('');
+				$.each(data,function(key,value){
+					$('#additionalProvider').append('<p class="selectable" data-uuid="' + value.uuid + '">' + value.display.split("-")[1] + '</p>');
 				});
-			});
-		}
+				
+			}
+		});
 	});
 	$('body').on('click','.removeAdditionalProvider',function(){
 		var indexToRemove = additionalProviderCashe.indexOf($(this).closest('tr').find('span.listItem').first().data('uuid'));
@@ -432,7 +450,7 @@ $(document).ready(function() {
 		var startMoment = moment(startDate.getFullYear() + '-' + (startDate.getMonth()+1) + '-' + startDate.getDate());
 		var endMoment = moment(endDate.getFullYear() + '-' + (endDate.getMonth()+1) + '-' + endDate.getDate()).add(1,'day');
 		var dayCounter = 0;
-		if(!(startMoment.format() == endMoment.add(-1,'day').format()) && startMoment.isoWeekday() == 7){
+		if(!((startMoment.format() == endMoment.clone().add(-1,'day').format()) && startMoment.isoWeekday() == 7)){
 			if(isWorkDays){
 				while(startMoment.format() != endMoment.format()){
 					if(startMoment.isoWeekday() == 6 || startMoment.isoWeekday() == 7){
