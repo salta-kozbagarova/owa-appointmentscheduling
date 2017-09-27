@@ -15,8 +15,10 @@ $(document).ready(function() {
 	var paymentTypesUrl = apiBaseUrl + "/appointmentscheduling/paymenttype";
 	var providersUrl = apiBaseUrl + "/provider";
 	var locationsUrl = apiBaseUrl + "/location";
+	var providerAttributeTypeUrl = apiBaseUrl + "/providerattributetype";
 	
 	var additionalProviderCashe = [];
+	var appointmentTypeCashe = [];
 	
 	var isWorkDays = false;
 	var isWeekend = false;
@@ -30,6 +32,8 @@ $(document).ready(function() {
 		$('.fc-day-grid.fc-unselectable').html(highlightContainer);
 	}
 	
+	var locationsData = [];
+	var providerAttributeTypes = {};
 	/*
 	***********************************************************************
 	**************Appointment Block objects and sources********************
@@ -129,6 +133,8 @@ $(document).ready(function() {
 			});
 		}
 	}
+	
+	var tmpAppointmentBlock;
 	/*
 	***************END*****END*****END*****END*****END*********************
 	***************END*****END*****END*****END*****END*********************
@@ -151,9 +157,41 @@ $(document).ready(function() {
 		}, 3000);
 	}
 	
-	//retrieves all locations from the API and puts its data to <select>
+	//retrieves all locations from the API and stores them in locationsData array
+	var url = locationsUrl+'?v=full'+'&startIndex=0';
+	while(url){
+		$.ajax({
+			url: url,
+			method: 'GET',
+			headers: {
+				"authorization": credentials,
+				"content-type": "application/json"
+			},
+			success: function(response){
+				url = null;
+				if(response.links != null){
+					var links = response.links;
+					$.each(links,function(i,v){
+						if(v.rel == "next"){
+							url = v.uri;
+						}
+					});
+				}
+				var data = response.results;
+				$.merge(locationsData, data);
+			}
+		});
+	}
+	//put locationsData to <select>
+	var options = '<option value="">' + 'Choose a location' + '</option>';
+	$.each(locationsData,function(key,value){
+		options += '<option value="' + value.uuid + '">' + value.display + '</option>';
+	});
+	$('#location').html(options);
+	
+	//retrieves all provider attribute types from the API and stores them in providerAttributeTypes object
 	$.ajax({
-		url: locationsUrl,
+		url: providerAttributeTypeUrl,
 		method: 'GET',
 		headers: {
 			"authorization": credentials,
@@ -161,18 +199,17 @@ $(document).ready(function() {
 		},
 		success: function(response){
 			var data = response.results;
-			var options = '<option value="">' + 'Choose a location' + '</option>';
 			$.each(data,function(key,value){
-				options += '<option value="' + value.uuid + '">' + value.display + '</option>';
+				providerAttributeTypes[value.display] = value.uuid;
 			});
-			$('#location').html(options);
 		}
 	});
-	
+		
 	//when selecting a location retrieves all providers for the selected location from the API and puts its data to <select>
 	$('#location').change(function(e){
+		var locationUuid = $(this).val();
 		$.ajax({
-			url: providersUrl,
+			url: providersUrl+'?v=full',
 			method: 'GET',
 			headers: {
 				"authorization": credentials,
@@ -180,9 +217,13 @@ $(document).ready(function() {
 			},
 			success: function(response){
 				var data = response.results;
-				var options = '<option value="">' + 'Choose a provider' + '</option><option value="all">' + 'All providers' + '</option>';
+				var options = '<option value="">' + 'Choose a provider' + '</option>';
 				$.each(data,function(key,value){
-					options += '<option value="' + value.uuid + '">' + value.display.split("-")[1] + '</option>';
+					//$.each(value.attributes,function(i,v){
+						//if(v.attributeType.uuid == providerAttributeTypes.Department && v.value.uuid == locationUuid){
+							options += '<option value="' + value.uuid + '">' + value.display.split("-")[1] + '</option>';
+						//}
+					//});
 				});
 				$('#provider').html(options);
 				$('#calendar').fullCalendar('refetchEvents');
@@ -237,11 +278,17 @@ $(document).ready(function() {
 	});
 	
 	$('body').on('click','.removeAppointmentType',function(){
+		var indexToRemove = appointmentTypeCashe.indexOf($(this).closest('tr').find('span.listItem').first().data('uuid'));
+		appointmentTypeCashe.splice(indexToRemove,1);
 		$(this).closest('tr').remove();
 	});
 	$('#appointmentType').change(function(e){
 		var appointmentTypeUuid = $(this).find('option:selected').val();
 		var appointmentTypeText = $(this).find('option:selected').text();
+		if($.inArray(appointmentTypeUuid, appointmentTypeCashe) >= 0){
+			return null;
+		}
+		appointmentTypeCashe.push(appointmentTypeUuid);
 		var appointmentTypeList = $('#appointmentTypeList');
 		appointmentTypeList.append('<tr><td><span class="listItem" data-uuid="' + appointmentTypeUuid + '">' + appointmentTypeText + '</span></td>'
 		+'<td><span class="glyphicon glyphicon-minus pull-right removeAppointmentType" aria-hidden="true"></span></td>'
@@ -332,31 +379,7 @@ $(document).ready(function() {
 		});
 		return treeArr;
 	}
-	var locationsData = [];
-	var url = locationsUrl+'?v=full'+'&startIndex=0';
-	while(url){
-		$.ajax({
-			url: url,
-			method: 'GET',
-			headers: {
-				"authorization": credentials,
-				"content-type": "application/json"
-			},
-			success: function(response){
-				url = null;
-				if(response.links != null){
-					var links = response.links;
-					$.each(links,function(i,v){
-						if(v.rel == "next"){
-							url = v.uri;
-						}
-					});
-				}
-				var data = response.results;
-				$.merge(locationsData, data);
-			}
-		});
-	}
+	
 	var tree = makeTree(locationsData);
 	$('#locationTree').treeview({
 		data: tree,
@@ -414,8 +437,62 @@ $(document).ready(function() {
     $('#startTime').timepicker({ 'step': 5,'timeFormat': 'H:i:s', 'minTime': '8:00:00', 'maxTime': '20:00:00' });
     $('#endTime').timepicker({ 'step': 5,'timeFormat': 'H:i:s', 'minTime': '8:00:00', 'maxTime': '20:00:00' });
     $('#endDate').datepicker({dateFormat: "yy-mm-dd"});
-    $('#startBreakTime').timepicker({ 'step': 5,'timeFormat': 'H:i:s', 'minTime': '8:00:00', 'maxTime': '20:00:00' });
-    $('#endBreakTime').timepicker({ 'step': 5,'timeFormat': 'H:i:s', 'minTime': '8:00:00', 'maxTime': '20:00:00' });
+    $('#startBreakTime').timepicker({
+		'step': 5,
+		'timeFormat': 'H:i:s',
+		'minTime': '8:00:00',
+		'maxTime': '20:00:00'
+	});
+    $('#endBreakTime').timepicker({
+		'step': 5,
+		'timeFormat': 'H:i:s',
+		'minTime': '8:00:00',
+		'maxTime': '20:00:00'
+	});
+	$('#startBreakTime').change(function(e){
+		$('#endBreakTime').timepicker('option', {'minTime': $(this).val()});
+	});
+	
+	$('#startTime').change(function(e){
+		compareAppointmentServiceDuration();
+	});
+	$('#endTime').change(function(e){
+		compareAppointmentServiceDuration();
+	});
+	$('#serviceDuration').change(function(e){
+		compareAppointmentServiceDuration();
+	});
+	compareAppointmentServiceDuration = function(start, end){
+		var start = new Date($('#startDate').val()+' '+$('#startTime').val());
+		var end = new Date($('#startDate').val()+' '+$('#endTime').val());
+		var timeLength = calculateDateDifference(start, end, 'min');
+		var serviceDuration = $('#serviceDuration').val();
+		var modDiff = timeLength % serviceDuration;
+		var timeToAdd;
+		$('#serviceDurationError').remove();
+		if(modDiff > 0){
+			timeToAdd = serviceDuration - modDiff;
+			$('#errorMessages').append('<p class="text-danger" id="serviceDurationError">' + 'Service duration is not equal to appointment length. Add ' + timeToAdd + ' minutes to appointment' + '</p>');
+		} else{
+			$('#serviceDurationError').remove();
+		}
+	}
+	
+	calculateDateDifference = function(start, end, date){
+		var sec;
+		if(date == 'day'){
+			sec = 1000 * 3600 * 24;
+		} else if(date == 'hour'){
+			sec = 1000 * 3600;
+		} else if(date == 'min'){
+			sec = 1000 * 60;
+		} else if(date == 'sec'){
+			sec = 1000;
+		}
+        var timeDiff = Math.abs(start.getTime() - end.getTime());
+        var diff = Math.ceil(timeDiff / sec);
+		return diff;
+	}
 	/*
 	**********************************************************************
 	*/
@@ -569,9 +646,9 @@ $(document).ready(function() {
 						console.log('apply request '+i+' '+index);
 						flashMessage('success','Appoinment schedule was successfully created');
 					}
-				}).fail(function(e) {
+				}).fail(function(e, a, c) {
 					console.log('apply error '+i+' '+index);
-					flashMessage('error',e);
+					flashMessage('danger',e.responseJSON.error.message);
 				});
 				startTime[index].add(1,'day');
 				endTime[index].add(1,'day');
@@ -579,13 +656,17 @@ $(document).ready(function() {
 		});
 		console.log('apply refetching');
         $('#calendar').fullCalendar('refetchEvents');
+		//TO-DO this is a temporary hack to correctly refetch events
+		$('#calendar').fullCalendar( 'changeView', 'agendaDay');
+		$('#calendar').fullCalendar( 'changeView', 'month');
+		///////////////////////////////////////////////////////////
         $('#calendar').fullCalendar('unselect');
     }
 	
 	/*
 	* Updates an existing appointment schedule with the values in the dialog window
 	* @param e Event
-	* @param uuid uuid property of AppoinmentBlock object
+	* @param uuid uuid property of AppointmentBlock object
 	*/
 	updateSchedule = function(e, uuid){
 		console.log('updating');
@@ -731,7 +812,7 @@ $(document).ready(function() {
 	* Initializing calendar with the jquery fullcalendar plugin
 	*/
     $('#calendar').fullCalendar({
-        defaultView: 'agenda',
+        defaultView: 'month',
 		locale: 'ru',
         allDaySlot:false,
 		minTime: "08:00:00",
@@ -763,7 +844,9 @@ $(document).ready(function() {
 		eventClick: function(calEvent, jsEvent, view) {
 			var appointmentTypeList = $('#appointmentTypeList');
 			appointmentTypeList.html('');
+			appointmentTypeCashe = [];
 			$.each(calEvent.types, function(index,value){
+				appointmentTypeCashe.push(value.uuid);
 				appointmentTypeList.append('<tr><td><span class="listItem" data-uuid="' + value.uuid + '">' + value.display + '</span></td>'
 					+'<td><span class="glyphicon glyphicon-minus pull-right removeAppointmentType" aria-hidden="true"></span></td>'
 					+'</tr>');
@@ -846,10 +929,9 @@ $(document).ready(function() {
 		}
     });
 	
-	changeWorkDays = function(val){
-		isWorkDays = val;
-		isWeekend = !val;
-		console.log(isWorkDays + ' ' + isWeekend);
+	changeWorkDays = function(val1, val2){
+		isWorkDays = val1;
+		isWeekend = (val2 != null) ? val2 : !val1;
 	}
 	
 	$('#workDays').change(function(e){
@@ -865,8 +947,16 @@ $(document).ready(function() {
 			selectWeekend();
 		}
 	});
+	$('#allDays').attr('checked',true);
+	$('#allDays').change(function(e){
+		if($(this).is(':checked')){
+			changeWorkDays(false, false);
+			unselectWeekend();
+		}
+	});
 	
 	unselectWeekend = function(){
+		renderHighlightConatiner();
 		$('.fc-highlight').each(function(i){
 			var colspan = $(this).attr('colspan');
 			var prev = $(this).prev();
