@@ -5,7 +5,6 @@ $(document).ready(function() {
 	* Global variables
 	*/
     var apiBaseUrl = 'http://localhost:8085/openmrs-dev/ws/rest/v1';
-	var credentials = 'Basic ' + btoa('admin', 'Admin123');
     $.getJSON("manifest.webapp", function( json ) {
         apiBaseUrl = json.activities.openmrs.href + "/ws/rest/v1";
 		console.log(apiBaseUrl+'/appointmentscheduling/appointmentblockwithtimeslot');
@@ -116,10 +115,6 @@ $(document).ready(function() {
 			$.ajax({
 				url: url + '&fromDate=' + fromDate + '&toDate=' + toDate,
 				method: 'GET',
-				headers: {
-					"authorization": credentials,
-					"content-type": "application/json"
-				},
 				success: function(response){
 					var data = response.results;
 					var events = [];
@@ -163,10 +158,6 @@ $(document).ready(function() {
 		$.ajax({
 			url: url,
 			method: 'GET',
-			headers: {
-				"authorization": credentials,
-				"content-type": "application/json"
-			},
 			success: function(response){
 				url = null;
 				if(response.links != null){
@@ -193,10 +184,6 @@ $(document).ready(function() {
 	$.ajax({
 		url: providerAttributeTypeUrl,
 		method: 'GET',
-		headers: {
-			"authorization": credentials,
-			"content-type": "application/json"
-		},
 		success: function(response){
 			var data = response.results;
 			$.each(data,function(key,value){
@@ -211,19 +198,15 @@ $(document).ready(function() {
 		$.ajax({
 			url: providersUrl+'?v=full',
 			method: 'GET',
-			headers: {
-				"authorization": credentials,
-				"content-type": "application/json"
-			},
 			success: function(response){
 				var data = response.results;
 				var options = '<option value="">' + 'Choose a provider' + '</option>';
 				$.each(data,function(key,value){
-					//$.each(value.attributes,function(i,v){
-						//if(v.attributeType.uuid == providerAttributeTypes.Department && v.value.uuid == locationUuid){
+					$.each(value.attributes,function(i,v){
+						if(v.attributeType.uuid == providerAttributeTypes.Department && v.value.uuid == locationUuid){
 							options += '<option value="' + value.uuid + '">' + value.display.split("-")[1] + '</option>';
-						//}
-					//});
+						}
+					});
 				});
 				$('#provider').html(options);
 				$('#calendar').fullCalendar('refetchEvents');
@@ -247,10 +230,6 @@ $(document).ready(function() {
 	$.ajax({
 		url: appointmentTypesUrl,
 		method: 'GET',
-		headers: {
-			"authorization": credentials,
-			"content-type": "application/json"
-		},
 		success: function(response){
 			var data = response.results;
 			var options = '<option value="">' + 'Choose services' + '</option>';
@@ -265,10 +244,6 @@ $(document).ready(function() {
 	$.ajax({
 		url: paymentTypesUrl,
 		method: 'GET',
-		headers: {
-			"authorization": credentials,
-			"content-type": "application/json"
-		},
 		success: function(response){
 			var data = response.results;
 			$.each(data,function(i,v){
@@ -395,10 +370,6 @@ $(document).ready(function() {
 		$.ajax({
 			url: providersUrl,
 			method: 'GET',
-			headers: {
-				"authorization": credentials,
-				"content-type": "application/json"
-			},
 			success: function(response){
 				var data = response.results;
 				$('#additionalProvider').html('');
@@ -638,10 +609,6 @@ $(document).ready(function() {
 					url: appointmentBlockUrl,
 					method: 'POST',
 					data: JSON.stringify(appointmentBlock),
-					headers: {
-						"authorization": credentials,
-						"content-type": "application/json"
-					},
 					success: function(response){
 						console.log('apply request '+i+' '+index);
 						flashMessage('success','Appoinment schedule was successfully created');
@@ -656,10 +623,7 @@ $(document).ready(function() {
 		});
 		console.log('apply refetching');
         $('#calendar').fullCalendar('refetchEvents');
-		//TO-DO this is a temporary hack to correctly refetch events
-		$('#calendar').fullCalendar( 'changeView', 'agendaDay');
-		$('#calendar').fullCalendar( 'changeView', 'month');
-		///////////////////////////////////////////////////////////
+		refreshCalendar();
         $('#calendar').fullCalendar('unselect');
     }
 	
@@ -667,6 +631,7 @@ $(document).ready(function() {
 	* Updates an existing appointment schedule with the values in the dialog window
 	* @param e Event
 	* @param uuid uuid property of AppointmentBlock object
+	* TODO: function first deletes and then creates new appointment blocks, it has to sent one POST request
 	*/
 	updateSchedule = function(e, uuid){
 		console.log('updating');
@@ -731,10 +696,6 @@ $(document).ready(function() {
 		$.ajax({
 			url: appointmentBlockUrl+'/'+uuid,
 			method: 'DELETE',
-			headers: {
-				"authorization": credentials,
-				"content-type": "application/json"
-			},
 			success: function(response){
 				console.log('deleted');
 				var appointmentBlock;
@@ -759,10 +720,6 @@ $(document).ready(function() {
 							url: appointmentBlockUrl,
 							method: 'POST',
 							data: JSON.stringify(appointmentBlock),
-							headers: {
-								"authorization": credentials,
-								"content-type": "application/json"
-							},
 							success: function(response){
 								console.log('update request '+i+' '+index);
 								flashMessage('success','Appoinment schedule was successfully updated');
@@ -795,10 +752,6 @@ $(document).ready(function() {
 		$.ajax({
 			url: appointmentBlockUrl+'/'+uuid,
 			method: 'DELETE',
-			headers: {
-				"authorization": credentials,
-				"content-type": "application/json"
-			},
 			success: function(response){
 				flashMessage('success','Appoinment schedule was successfully deleted');
 			}
@@ -808,6 +761,13 @@ $(document).ready(function() {
 		$('#calendar').fullCalendar('refetchEvents');
 	}
     
+	refreshCalendar = function(){
+		//TODO: this is a temporary hack to correctly refetch events
+		$('#calendar').fullCalendar( 'changeView', 'agendaDay');
+		$('#calendar').fullCalendar( 'changeView', 'month');
+		///////////////////////////////////////////////////////////
+	}
+	
 	/*
 	* Initializing calendar with the jquery fullcalendar plugin
 	*/
@@ -889,6 +849,7 @@ $(document).ready(function() {
         selectHelper: true,
 		unselectAuto: false,
         select: function(start, end, jsEvent, view, resorce) {
+			//refreshCalendar();
 			fillHighlightContainer();
 			if($('#workDays').is(':checked')){
 				selectWorkDays();
@@ -1075,19 +1036,11 @@ $(document).ready(function() {
 		$.ajax({
 			url: appointmentBlockUrl+'/'+appointmentBlock.uuid,
 			method: 'DELETE',
-			headers: {
-				"authorization": credentials,
-				"content-type": "application/json"
-			},
 			success: function(response){
 				$.ajax({
 					url: appointmentBlockUrl,
 					method: 'POST',
 					data: JSON.stringify(objToSave),
-					headers: {
-						"authorization": credentials,
-						"content-type": "application/json"
-					},
 					success: function(response){
 						flashMessage('success','Appointment schedule was successfully created');
 					}
