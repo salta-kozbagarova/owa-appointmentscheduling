@@ -167,9 +167,9 @@
 					<hr>
 					<div class="row">
 						<div class="col-md-4">
-							<label for="serviceDuration">Service duration</label>
+							<label for="serviceDuration">Time slot length</label>
 							<div class="form-group">
-								<input type='text' name="serviceDuration" class="form-control" id="serviceDuration" />
+								<input type='text' name="timeSlotLength" class="form-control" id="timeSlotLength" />
 							</div>
 						</div>
 						<div class="col-md-4">
@@ -206,12 +206,21 @@
 						</div>
 					</div>
 					<div class="row">
-						<label for="paymentTypes">Payment types</label>
-						<div id="paymentTypes">
-						<div class="col-md-12">
-							<div id="paymentTypeList">
+						<div class="col-md-6">
+							<label for="paymentTypes">Payment types</label>
+							<div id="paymentTypes">
+								<div id="paymentTypeList">
+								</div>
 							</div>
 						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<select name="appointmentBlockType" id="appointmentBlockType" class="form-control">
+									<option value="appointment">Appointment</option>
+									<option value="live">Live</option>
+								</select>
+							</div>
+							</div>
 						</div>
 					</div>
 					<hr>

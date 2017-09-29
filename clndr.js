@@ -9,7 +9,8 @@ $(document).ready(function() {
         apiBaseUrl = json.activities.openmrs.href + "/ws/rest/v1";
 		console.log(apiBaseUrl+'/appointmentscheduling/appointmentblockwithtimeslot');
     });
-	var appointmentBlockUrl = apiBaseUrl + "/appointmentscheduling/appointmentblockwithtimeslot";
+	var appointmentBlockUrl = apiBaseUrl + "/appointmentscheduling/appointmentblock";//withtimeslot
+	var timeSlotUrl = apiBaseUrl + "/appointmentscheduling/timeslot";
 	var appointmentTypesUrl = apiBaseUrl + "/appointmentscheduling/appointmenttype";
 	var paymentTypesUrl = apiBaseUrl + "/appointmentscheduling/paymenttype";
 	var providersUrl = apiBaseUrl + "/provider";
@@ -35,36 +36,37 @@ $(document).ready(function() {
 	var providerAttributeTypes = {};
 	/*
 	***********************************************************************
-	**************Appointment Block objects and sources********************
+	**************AppointmentBlock and TimeSlot objects and sources********************
 	***********************************************************************
 	*/
 	var AppointmentBlock = function(obj){
 		
-		var serviceDuration;
+		var timeSlotLength;
 		
 		this.construct = function(obj){
-			this.uuid = obj.uuid;
+			this.appointmentBlockUuid = obj.uuid;
 			this.types = obj.types;
 			this.title = this.getTitleFromTime(obj.startDate, obj.endDate);
 			this.start = obj.startDate;
 			this.end = obj.endDate;
 			this.location = obj.location;
 			this.provider = obj.provider;
-			this.serviceDuration = obj.serviceDuration;
+			this.timeSlotLength = obj.timeSlotLength;
 			this.nursesQuantity = obj.nursesQuantity;
 			this.additionalProviders = obj.additionalProviders;
 			this.paymentTypes = obj.paymentTypes;
+			this.appointmentBlockType = obj.appointmentBlockType;
 		}
 		
-		Object.defineProperty(this, "serviceDuration", {
+		Object.defineProperty(this, "timeSlotLength", {
 			get: function() {
-				if(!serviceDuration){
-					serviceDuration = 5;
+				if(!timeSlotLength){
+					timeSlotLength = 5;
 				}
-				return serviceDuration;
+				return timeSlotLength;
 			},
 			set: function(newValue) {
-				serviceDuration = newValue;
+				timeSlotLength = newValue;
 			},
 
 			enumerable: true,
@@ -78,6 +80,48 @@ $(document).ready(function() {
 			});
 			return types.join(',');
 		}
+		
+		this.getTitleFromTime = function(start, end){
+			var st = new Date(start);
+			var en = new Date(end);
+			return st.toLocaleTimeString('ru-RU',{ hour12: false }) + '-' + en.toLocaleTimeString('ru-RU',{ hour12: false });
+		}
+		
+		this.construct(obj);
+	}
+	
+	var TimeSlot = function(obj){
+		
+		var appointmentBlock;
+		
+		this.construct = function(obj){
+			this.appointmentBlock = new AppointmentBlock(obj.appointmentBlock);
+			this.appointmentBlockUuid = this.appointmentBlock.appointmentBlockUuid;
+			this.uuid = obj.uuid;
+			this.title = this.getTitleFromTime(obj.startDate, obj.endDate);
+			this.start = obj.startDate;
+			this.end = obj.endDate;
+			this.types = this.appointmentBlock.types;
+			this.location = this.appointmentBlock.location;
+			this.provider = this.appointmentBlock.provider;
+			this.timeSlotLength = this.appointmentBlock.timeSlotLength;
+			this.nursesQuantity = this.appointmentBlock.nursesQuantity;
+			this.additionalProviders = this.appointmentBlock.additionalProviders;
+			this.paymentTypes = this.appointmentBlock.paymentTypes;
+			this.appointmentBlockType = this.appointmentBlock.appointmentBlockType;
+		}
+		
+		Object.defineProperty(this, "appointmentBlock", {
+			get: function() {
+				return appointmentBlock;
+			},
+			set: function(newValue) {
+				appointmentBlock = newValue;
+			},
+
+			enumerable: true,
+			configurable: true
+		});
 		
 		this.getTitleFromTime = function(start, end){
 			var st = new Date(start);
@@ -121,6 +165,47 @@ $(document).ready(function() {
 					$.each(data,function(key,value){
 						events.push(
 							new AppointmentBlock(value)
+						);
+					});
+					callback(events);
+				}
+			});
+		}
+	}
+	
+	var TimeSlotSource = function(timeSlots, id){
+		
+		this.construct = function(id, timeSlots){
+			this.id = id;
+			this.events = timeSlots;
+		}
+		this.construct(id, timeSlots);
+	}
+	
+	var timeSlotSource = new TimeSlotSource('timeSlots');
+	timeSlotSource.events = function(start, end, timezone, callback) {
+		var locationUuid = $('#location').find('option:selected').val();
+		var providerUuid = $('#provider').find('option:selected').val();
+		var fromDate = start.format().split('T')[0];
+		var toDate = end.format().split('T')[0];
+		if(!locationUuid || !providerUuid){
+			callback([]);
+		}else{
+			var url;
+			if(providerUuid == 'all'){
+				url = timeSlotUrl+'?v=default&location='+locationUuid;
+			}else{
+				url = timeSlotUrl+'?v=default&location='+locationUuid+'&provider='+providerUuid;
+			}
+			$.ajax({
+				url: url + '&fromDate=' + fromDate + '&toDate=' + toDate,
+				method: 'GET',
+				success: function(response){
+					var data = response.results;
+					var events = [];
+					$.each(data,function(key,value){
+						events.push(
+							new TimeSlot(value)
 						);
 					});
 					callback(events);
@@ -270,14 +355,14 @@ $(document).ready(function() {
 		+'</tr>');
 	});
 	
-	//serviceDuration event handlers
-	$('#serviceDuration').val(5);
-	$('#serviceDuration').keydown(function(e){
+	//timeSlotLength event handlers
+	$('#timeSlotLength').val(5);
+	$('#timeSlotLength').keydown(function(e){
 		if(((e.which >= 32 && e.which <= 47) || (e.which >= 58 && e.which <= 127)) && ($.inArray(e.which,[37,38,39,40]) < 0)){
 			e.preventDefault();
 		}
 	});
-	$('#serviceDuration').blur(function(e){
+	$('#timeSlotLength').blur(function(e){
 		if(!$(this).val()){
 			$(this).val(5);
 		}
@@ -303,10 +388,10 @@ $(document).ready(function() {
 		applySchedule(e)
 	});
 	$('#update').click(function(e){
-		updateSchedule(e, $('#appointmentContainer').data('uuid'))
+		updateSchedule(e, $('#appointmentContainer').data('appointment-block-uuid'))
 	});
 	$('#delete').click(function(e){
-		deleteSchedule(e, $('#appointmentContainer').data('uuid'))
+		deleteSchedule(e, $('#appointmentContainer').data('appointment-block-uuid'))
 	});
 	
 	/*
@@ -425,27 +510,27 @@ $(document).ready(function() {
 	});
 	
 	$('#startTime').change(function(e){
-		compareAppointmentServiceDuration();
+		compareAppointmentTimeSlotLength();
 	});
 	$('#endTime').change(function(e){
-		compareAppointmentServiceDuration();
+		compareAppointmentTimeSlotLength();
 	});
-	$('#serviceDuration').change(function(e){
-		compareAppointmentServiceDuration();
+	$('#timeSlotLength').change(function(e){
+		compareAppointmentTimeSlotLength();
 	});
-	compareAppointmentServiceDuration = function(start, end){
+	compareAppointmentTimeSlotLength = function(start, end){
 		var start = new Date($('#startDate').val()+' '+$('#startTime').val());
 		var end = new Date($('#startDate').val()+' '+$('#endTime').val());
 		var timeLength = calculateDateDifference(start, end, 'min');
-		var serviceDuration = $('#serviceDuration').val();
-		var modDiff = timeLength % serviceDuration;
+		var timeSlotLength = $('#timeSlotLength').val();
+		var modDiff = timeLength % timeSlotLength;
 		var timeToAdd;
-		$('#serviceDurationError').remove();
+		$('#timeSlotLengthError').remove();
 		if(modDiff > 0){
-			timeToAdd = serviceDuration - modDiff;
-			$('#errorMessages').append('<p class="text-danger" id="serviceDurationError">' + 'Service duration is not equal to appointment length. Add ' + timeToAdd + ' minutes to appointment' + '</p>');
+			timeToAdd = timeSlotLength - modDiff;
+			$('#errorMessages').append('<p class="text-danger" id="timeSlotLengthError">' + 'Service duration is not equal to appointment length. Add ' + timeToAdd + ' minutes to appointment' + '</p>');
 		} else{
-			$('#serviceDurationError').remove();
+			$('#timeSlotLengthError').remove();
 		}
 	}
 	
@@ -542,6 +627,7 @@ $(document).ready(function() {
 			flashMessage('warning','Sunday is not a work day');
 		}
 		
+		var timeSlotLength = $('#timeSlotLength').val();
 		var breakTimes = [];
 		$('#breakTimeList').find('span.listItem').each(function(index){
 			$.each($(this).text().split('-'),function(i,v){
@@ -573,7 +659,6 @@ $(document).ready(function() {
 			}
 		}
 		
-		var serviceDuration = $('#serviceDuration').val();
 		var nursesQuantity = $('#nursesQuantity').val();
 		var additionalProviders = [];
 		$('#additionalProviderList').find('span.listItem').each(function(index){
@@ -584,6 +669,8 @@ $(document).ready(function() {
 		$('#paymentTypeList').find('.listItem:checked').each(function(index){
 			paymentTypes.push($(this).val());
 		});
+		
+		var appointmentBlockType = $('#appointmentBlockType').val();
 		
 		var appointmentBlock;
 		$.each(days,function(i,v){
@@ -600,15 +687,17 @@ $(document).ready(function() {
 					'provider': {
 						'uuid': providerUuid
 					},
-					'serviceDuration': serviceDuration.toString(),
+					'timeSlotLength': timeSlotLength.toString(),
 					'nursesQuantity': nursesQuantity.toString(),
 					'additionalProviders':additionalProviders,
-					'paymentTypes': paymentTypes
+					'paymentTypes': paymentTypes,
+					'appointmentBlockType': appointmentBlockType
 				};
 				$.ajax({
 					url: appointmentBlockUrl,
 					method: 'POST',
 					data: JSON.stringify(appointmentBlock),
+					contentType: "application/json",
 					success: function(response){
 						console.log('apply request '+i+' '+index);
 						flashMessage('success','Appoinment schedule was successfully created');
@@ -681,7 +770,7 @@ $(document).ready(function() {
 			}
 		}
 		
-		var serviceDuration = $('#serviceDuration').val();
+		var timeSlotLength = $('#timeSlotLength').val();
 		var nursesQuantity = $('#nursesQuantity').val();
 		var additionalProviders = [];
 		$('#additionalProviderList').find('span.listItem').each(function(index){
@@ -692,6 +781,8 @@ $(document).ready(function() {
 		$('#paymentTypeList').find('.listItem:checked').each(function(index){
 			paymentTypes.push($(this).val());
 		});
+		
+		var appointmentBlockType = $('#appointmentBlockType').val();
 		
 		$.ajax({
 			url: appointmentBlockUrl+'/'+uuid,
@@ -711,15 +802,17 @@ $(document).ready(function() {
 							'provider': {
 								'uuid': providerUuid
 							},
-							'serviceDuration': serviceDuration.toString(),
+							'timeSlotLength': timeSlotLength.toString(),
 							'nursesQuantity': nursesQuantity.toString(),
 							'additionalProviders':additionalProviders,
-							'paymentTypes': paymentTypes
+							'paymentTypes': paymentTypes,
+							'appointmentBlockType': appointmentBlockType
 						};
 						$.ajax({
 							url: appointmentBlockUrl,
 							method: 'POST',
 							data: JSON.stringify(appointmentBlock),
+							contentType: "application/json",
 							success: function(response){
 								console.log('update request '+i+' '+index);
 								flashMessage('success','Appoinment schedule was successfully updated');
@@ -816,7 +909,7 @@ $(document).ready(function() {
 			$('#startTime').val(calEvent.start.format('HH:mm:ss'));
 			$('#endDate').val(calEvent.end.format('YYYY-MM-DD'));
 			$('#endTime').val(calEvent.end.format('HH:mm:ss'));
-			$('#serviceDuration').val(calEvent.serviceDuration);
+			$('#timeSlotLength').val(calEvent.timeSlotLength);
 			$('#nursesQuantity').val(calEvent.nursesQuantity);
 			
 			var additionalProviderList = $('#additionalProviderList');
@@ -835,15 +928,17 @@ $(document).ready(function() {
 			});
 			$('#paymentTypeList').find('.listItem').each(function(index){
 				if($.inArray($(this).val(),paymentTypes) >= 0){
-					$(this).attr('checked',true);
+					$(this).prop('checked',true);
 				}else{
-					$(this).attr('checked',false);
+					$(this).prop('checked',false);
 				}
 			});
 			
+			$('#appointmentBlockType').val(calEvent.appointmentBlockType);
+			
 			$('#apply').addClass('hidden');
 			$('#update').removeClass('hidden');
-			$('#appointmentContainer').data('uuid',calEvent.uuid);
+			$('#appointmentContainer').data('appointment-block-uuid',calEvent.appointmentBlockUuid);
 		},
         selectable: true,
         selectHelper: true,
@@ -880,7 +975,7 @@ $(document).ready(function() {
 			}
 			$('#update').addClass('hidden');
 			$('#apply').removeClass('hidden');
-			$('#appointmentContainer').data('uuid',null);
+			$('#appointmentContainer').data('appointment-block-uuid',null);
         },
 		eventResize: function( event, delta, revertFunc, jsEvent, ui, view ) {
 			updateAppointmentBlock(event);
@@ -889,6 +984,8 @@ $(document).ready(function() {
 			updateAppointmentBlock(event);
 		}
     });
+	
+	$('#appointmentBlockType').val('appointment');
 	
 	changeWorkDays = function(val1, val2){
 		isWorkDays = val1;
@@ -1028,19 +1125,21 @@ $(document).ready(function() {
 			'provider': {
 				'uuid': appointmentBlock.provider.uuid
 			},
-			'serviceDuration': appointmentBlock.serviceDuration,
+			'timeSlotLength': appointmentBlock.timeSlotLength,
 			'nursesQuantity': appointmentBlock.nursesQuantity,
 			'additionalProviders':appointmentBlock.additionalProviders,
-			'paymentTypes': appointmentBlock.paymentTypes
+			'paymentTypes': appointmentBlock.paymentTypes,
+			'appointmentBlockType': appointmentBlock.appointmentBlockType
 		}
 		$.ajax({
-			url: appointmentBlockUrl+'/'+appointmentBlock.uuid,
+			url: appointmentBlockUrl+'/'+appointmentBlock.appointmentBlockUuid,
 			method: 'DELETE',
 			success: function(response){
 				$.ajax({
 					url: appointmentBlockUrl,
 					method: 'POST',
 					data: JSON.stringify(objToSave),
+					contentType: "application/json",
 					success: function(response){
 						flashMessage('success','Appointment schedule was successfully created');
 					}
