@@ -22,14 +22,46 @@ $(document).ready(function() {
 	
 	var isWorkDays = false;
 	var isWeekend = false;
-	var highlightContainer;
+	var highlightContainer = [];
+	highlightContainer["currentState"] = [];
 	
 	fillHighlightContainer = function(){
-		highlightContainer = $('.fc-day-grid.fc-unselectable').html();
+		cleanOldHighlightConatiner();
+		$('.fc-day-grid.fc-unselectable').children().each(function(i,v){
+			highlightContainer.push($("<div>").append($(this).find('.fc-highlight-skeleton').clone()).html());
+		});
+	}
+	
+	fillHighlightCurrState = function(){
+		highlightContainer["currentState"] = [];
+		$('.fc-day-grid.fc-unselectable').children().each(function(i,v){
+			highlightContainer["currentState"].push($("<div>").append($(this).find('.fc-highlight-skeleton').clone()).html());
+		});
 	}
 	
 	renderHighlightConatiner = function(){
-		$('.fc-day-grid.fc-unselectable').html(highlightContainer);
+		$('.fc-day-grid.fc-unselectable').children().each(function(i,v){
+			var highlight = $(this).find('.fc-highlight-skeleton');
+			if($(highlight).length > 0){
+				$(highlight).remove();
+			}
+			$(this).append(highlightContainer[i]);
+		});
+	}
+	
+	cleanOldHighlightConatiner = function(){
+		$('.fc-day-grid.fc-unselectable').children().each(function(i,v){
+			var highlight = $(this).find('.fc-highlight-skeleton');
+			if($(highlight).length > 1){
+				$(highlight).first().remove();
+			} else if($(highlight).length == 1){
+				if($("<div>").append($(highlight).clone()).html() === highlightContainer["currentState"][i]){
+					$(highlight).remove();
+				}
+			}
+		});
+		highlightContainer["currentState"] = [];
+		highlightContainer = [];
 	}
 	
 	var locationsData = [];
@@ -358,7 +390,7 @@ $(document).ready(function() {
 	//timeSlotLength event handlers
 	$('#timeSlotLength').val(5);
 	$('#timeSlotLength').keydown(function(e){
-		if(((e.which >= 32 && e.which <= 47) || (e.which >= 58 && e.which <= 127)) && ($.inArray(e.which,[37,38,39,40]) < 0)){
+		if(((e.which >= 32 && e.which <= 47) || (e.which >= 58 && e.which <= 95) || (e.which >= 106 && e.which <= 127)) && ($.inArray(e.which,[37,38,39,40]) < 0)){
 			e.preventDefault();
 		}
 	});
@@ -371,7 +403,7 @@ $(document).ready(function() {
 	//nursesQuantity event handlers
 	$('#nursesQuantity').val(0);
 	$('#nursesQuantity').keydown(function(e){
-		if(((e.which >= 32 && e.which <= 47) || (e.which >= 58 && e.which <= 127)) && ($.inArray(e.which,[37,38,39,40]) < 0)){
+		if(((e.which >= 32 && e.which <= 47) || (e.which >= 58 && e.which <= 95) || (e.which >= 106 && e.which <= 127)) && ($.inArray(e.which,[37,38,39,40]) < 0)){
 			e.preventDefault();
 		}
 	});
@@ -942,9 +974,8 @@ $(document).ready(function() {
 		},
         selectable: true,
         selectHelper: true,
-		unselectAuto: false,
-        select: function(start, end, jsEvent, view, resorce) {
-			//refreshCalendar();
+		unselectAuto: true,
+        select: function(start, end, jsEvent, view, resource) {
 			fillHighlightContainer();
 			if($('#workDays').is(':checked')){
 				selectWorkDays();
@@ -1040,6 +1071,7 @@ $(document).ready(function() {
 				}
 			}
 		});
+		fillHighlightCurrState();
 	}
 	
 	selectWorkDays = function(){
@@ -1069,6 +1101,7 @@ $(document).ready(function() {
 				}
 			}
 		});
+		fillHighlightCurrState();
 	}
 	
 	selectWeekend = function(){
@@ -1108,6 +1141,7 @@ $(document).ready(function() {
 				$(this).closest('.fc-highlight-skeleton').remove();
 			}
 		});
+		fillHighlightCurrState();
 	}
 	
 	/*
