@@ -5,10 +5,10 @@ $(document).ready(function() {
 	* Global variables
 	*/
     var apiBaseUrl = 'http://localhost:8085/openmrs-dev/ws/rest/v1';
-    $.getJSON("manifest.webapp", function( json ) {
+    /*$.getJSON("manifest.webapp", function( json ) {
         apiBaseUrl = json.activities.openmrs.href + "/ws/rest/v1";
 		console.log(apiBaseUrl+'/appointmentscheduling/appointmentblockwithtimeslot');
-    });
+    });*/
 	var appointmentBlockUrl = apiBaseUrl + "/appointmentscheduling/appointmentblock";//withtimeslot
 	var timeSlotUrl = apiBaseUrl + "/appointmentscheduling/timeslot";
 	var appointmentTypesUrl = apiBaseUrl + "/appointmentscheduling/appointmenttype";
@@ -104,7 +104,21 @@ $(document).ready(function() {
 			enumerable: true,
 			configurable: true
 		});
+		
+		Object.defineProperty(this, "appointmentBlockType", {
+			get: function() {
+				if(!appointmentBlockType){
+					appointmentBlockType = 'appointment';
+				}
+				return appointmentBlockType;
+			},
+			set: function(newValue) {
+				appointmentBlockType = newValue;
+			},
 
+			enumerable: true,
+			configurable: true
+		});
 		
 		this.getTitleFromTypes = function(appointmentTypes){
 			var types = $.map(appointmentTypes,function(v,k){
@@ -319,11 +333,11 @@ $(document).ready(function() {
 				var data = response.results;
 				var options = '<option value="">' + 'Choose a provider' + '</option>';
 				$.each(data,function(key,value){
-					$.each(value.attributes,function(i,v){
-						if(v.attributeType.uuid == providerAttributeTypes.Department && v.value.uuid == locationUuid){
+					//$.each(value.attributes,function(i,v){
+						//if(v.attributeType.uuid == providerAttributeTypes.Department && v.value.uuid == locationUuid){
 							options += '<option value="' + value.uuid + '">' + value.display.split("-")[1] + '</option>';
-						}
-					});
+						//}
+					//});
 				});
 				$('#provider').html(options);
 				$('#calendar').fullCalendar('refetchEvents');
@@ -860,6 +874,18 @@ $(document).ready(function() {
 			}
 		}).fail(function(e) {
 			flashMessage('error',e);
+			/* tmpAppointmentBlock.voided = false;
+			$.ajax({
+				url: appointmentBlockUrl+'/'+uuid,
+				method: 'POST',
+				data: JSON.stringify(tmpAppointmentBlock),
+				contentType: "application/json",
+				success: function(response){
+					flashMessage('success','Provider is already scheduled at this time');
+				}
+			}).fail(function(e) {
+				flashMessage('error',e);
+			}); */
 		});
 		console.log('update refetching');
         $('#calendar').fullCalendar('refetchEvents');
@@ -922,11 +948,12 @@ $(document).ready(function() {
         eventStartEditable:true,
         eventLimit:3,
 		eventSources: [
-			appointmentBlockSource
+			timeSlotSource
 		],
 		eventConstraint: "businessHours",
 		//selectConstraint: "businessHours",
 		eventClick: function(calEvent, jsEvent, view) {
+			tmpAppointmentBlock = calEvent;
 			var appointmentTypeList = $('#appointmentTypeList');
 			appointmentTypeList.html('');
 			appointmentTypeCashe = [];
@@ -1183,6 +1210,18 @@ $(document).ready(function() {
 			}
 		}).fail(function() {
 			console.log('error');
+			/* tmpAppointmentBlock.voided = false;
+			$.ajax({
+				url: appointmentBlockUrl+'/'+uuid,
+				method: 'POST',
+				data: JSON.stringify(tmpAppointmentBlock),
+				contentType: "application/json",
+				success: function(response){
+					flashMessage('success','Provider is already scheduled at this time');
+				}
+			}).fail(function(e) {
+				flashMessage('error',e);
+			}); */
 		});
 		$('#calendar').fullCalendar('refetchEvents');
 	}
