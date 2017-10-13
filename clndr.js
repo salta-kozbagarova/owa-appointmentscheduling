@@ -874,7 +874,7 @@ $(document).ready(function() {
 			}
 		}).fail(function(e) {
 			flashMessage('error',e);
-			/* tmpAppointmentBlock.voided = false;
+			tmpAppointmentBlock.voided = false;
 			$.ajax({
 				url: appointmentBlockUrl+'/'+uuid,
 				method: 'POST',
@@ -885,7 +885,7 @@ $(document).ready(function() {
 				}
 			}).fail(function(e) {
 				flashMessage('error',e);
-			}); */
+			});
 		});
 		console.log('update refetching');
         $('#calendar').fullCalendar('refetchEvents');
